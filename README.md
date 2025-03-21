@@ -4,19 +4,19 @@ This repository contains solutions for **COL633 - Resource Management in Compute
 
 ## Assignment 1 - Shell Enhancements 🖥️
 
-### 1. Enhanced Shell: 10 Marks 🔐
+### 1. Enhanced Shell 🔐
 
 Added a **username-password login system** for the shell with a 3-attempt limit.
 
-### 2. History Command: 10 Marks 🕒
+### 2. History Command 🕒
 
 Implemented a **history command** to list executed processes with memory usage and PID.
 
-### 3. Block/Unblock Command: 10 Marks 🛑
+### 3. Block/Unblock Command 🛑
 
 Created commands to **block/unblock system calls** for processes invoked by the shell.
 
-### 4. Chmod Command: 10 Marks 🖱️
+### 4. Chmod Command 🖱️
 
 Implemented **chmod** to change file permissions with a custom system call.
 
