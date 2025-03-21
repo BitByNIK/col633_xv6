@@ -1,5 +1,6 @@
 # Ignore build and output files
 *~               # Backup files created by editors (e.g., vim, emacs)
+_*               # Temporary files starting with _
 *.o              # Object files
 *.a              # Static libraries
 *.so             # Shared libraries
@@ -7,14 +8,19 @@
 *.exe            # Windows executables
 *.d              # Dependency files
 
-# Ignore build directories
-build/           # Common build directory
-kernel/          # If you're generating kernel artifacts in a separate directory
-user/            # If you have a user-space build folder
-
-# Ignore xv6 specific
+# Ignore xv6 specific files
 xv6.img          # Disk image of xv6
-*.bak            # Backup files created by editors
+*.asm            # Assembly files generated during build
+*.sym            # Symbol files generated during build
+vectors.S        # Vector file for xv6
+bootblock        # Boot block file
+entryother       # Entry file (platform-specific)
+initcode         # Initialization code file
+initcode.out     # Executable initcode
+kernel           # Compiled kernel file
+kernelmemfs      # Memory filesystem for the kernel
+mkfs             # File system creation tool
+.gdbinit         # GDB init file
 
 # Ignore temporary files created by editors
 .vscode/          # VSCode settings
