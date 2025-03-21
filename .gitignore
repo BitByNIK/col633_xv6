@@ -1,37 +1,37 @@
 # Ignore build and output files
-*~               # Backup files created by editors (e.g., vim, emacs)
-_*               # Temporary files starting with _
-*.o              # Object files
-*.a              # Static libraries
-*.so             # Shared libraries
-*.out            # Executable files
-*.exe            # Windows executables
-*.d              # Dependency files
+*~
+_* 
+*.o
+*.a
+*.so
+*.out
+*.exe
+*.d
 
 # Ignore xv6 specific files
-xv6.img          # Disk image of xv6
-*.asm            # Assembly files generated during build
-*.sym            # Symbol files generated during build
-vectors.S        # Vector file for xv6
-bootblock        # Boot block file
-entryother       # Entry file (platform-specific)
-initcode         # Initialization code file
-initcode.out     # Executable initcode
-kernel           # Compiled kernel file
-kernelmemfs      # Memory filesystem for the kernel
-mkfs             # File system creation tool
-.gdbinit         # GDB init file
+xv6.img
+*.asm
+*.sym
+vectors.S
+bootblock
+entryother
+initcode
+initcode.out
+kernel
+kernelmemfs
+mkfs
+.gdbinit
 
 # Ignore temporary files created by editors
-.vscode/          # VSCode settings
-.idea/            # IntelliJ IDEA settings
-.DS_Store         # macOS Finder metadata
-*.swp             # vim swap files
-*.swo             # vim swap files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
 
 # Ignore test and log files
-*.log             # Log files
-*.test            # Test files or results if any
+*.log
+*.test
 
 # Ignore config files that should not be tracked
 *.cfg
