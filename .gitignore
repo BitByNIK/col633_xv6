@@ -1,0 +1,32 @@
+# Ignore build and output files
+*~               # Backup files created by editors (e.g., vim, emacs)
+*.o              # Object files
+*.a              # Static libraries
+*.so             # Shared libraries
+*.out            # Executable files
+*.exe            # Windows executables
+*.d              # Dependency files
+
+# Ignore build directories
+build/           # Common build directory
+kernel/          # If you're generating kernel artifacts in a separate directory
+user/            # If you have a user-space build folder
+
+# Ignore xv6 specific
+xv6.img          # Disk image of xv6
+*.bak            # Backup files created by editors
+
+# Ignore temporary files created by editors
+.vscode/          # VSCode settings
+.idea/            # IntelliJ IDEA settings
+.DS_Store         # macOS Finder metadata
+*.swp             # vim swap files
+*.swo             # vim swap files
+
+# Ignore test and log files
+*.log             # Log files
+*.test            # Test files or results if any
+
+# Ignore config files that should not be tracked
+*.cfg
+*.config
