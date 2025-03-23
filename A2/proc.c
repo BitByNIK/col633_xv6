@@ -358,7 +358,8 @@ scheduler(void)
       if(p->first_run_time == 0)
         p->first_run_time = ticks;
 
-      p->cs++; // Increment context switch count
+      // Increment context switch count
+      p->cs++;
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
