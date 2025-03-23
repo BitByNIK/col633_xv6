@@ -53,6 +53,8 @@ struct proc {
   int run_time;                // Run time of the process
   int arrival_time;            // Creation time of the process
   int completion_time;         // End time of the process
+  int last_sleep_time;         // Time when the process last went to sleep
+  int sleep_time;              // Total time the process has been asleep
   int first_run_time;          // Time when the process first started running
   int cs;                      // Context switch count
 };

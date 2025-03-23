@@ -90,8 +90,13 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->first_run_time = 0; // Initialize first run time to 0
-  p->cs = 0; // Initialize context switch count to 0
+
+  // Initialize all scheduling parameters
+  p->exec_time = -1;
+  p->run_time = 0;
+  p->sleep_time = 0;
+  p->first_run_time = 0;
+  p->cs = 0;
 
   release(&ptable.lock);
 
@@ -216,9 +221,6 @@ fork(void)
 
   pid = np->pid;
 
-  np->exec_time = -1;
-  np->run_time = 0;
-
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
@@ -300,7 +302,7 @@ wait(void)
         // Print process profile
         cprintf("PID: %d\n", p->pid);
         cprintf("TAT: %d\n", p->completion_time - p->arrival_time);
-        cprintf("WT: %d\n", p->completion_time - p->arrival_time - p->run_time);
+        cprintf("WT: %d\n", p->completion_time - p->arrival_time - p->run_time - p->sleep_time);
         cprintf("RT: %d\n", p->first_run_time - p->arrival_time);
         cprintf("#CS: %d\n", p->cs);
 
@@ -464,6 +466,9 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
 
+  // Record last sleep time
+  p->last_sleep_time = ticks;
+
   sched();
 
   // Tidy up.
@@ -486,7 +491,11 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
-      if(p->arrival_time == 0)
+      // Update sleep time of the process
+      if(chan != CUSTOM_FORK_CHAN)
+        p->sleep_time += ticks - p->last_sleep_time;
+
+      if(p->arrival_time == -1)
         p->arrival_time = ticks; // Set arrival time if not set
 
       p->state = RUNNABLE;
@@ -598,16 +607,15 @@ custom_fork(int start_later_flag, int exec_time) {
 
   pid = np->pid;
 
-  // Set execution time of the process
-  np->exec_time = exec_time;
-  // Time executed by the process
-  np->run_time = 0;
+  np->exec_time = exec_time; // Set execution time of the process
 
   acquire(&ptable.lock);
   
   // Set the process state to SLEEPING if start_later_flag is set
   // Otherwise, set the process state to RUNNABLE
   if(start_later_flag){
+    np->arrival_time = -1; // Set arrival time to -1 if process is to start later
+
     np->state = SLEEPING;
     np->chan = CUSTOM_FORK_CHAN;
   } else{
