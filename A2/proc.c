@@ -90,6 +90,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->first_run_time = 0; // Initialize first run time to 0
+  p->cs = 0; // Initialize context switch count to 0
 
   release(&ptable.lock);
 
@@ -220,6 +222,7 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  np->arrival_time = ticks; // Record time when process is ready to run
 
   release(&ptable.lock);
 
@@ -235,6 +238,9 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+
+  // Record completion time of the process
+  curproc->completion_time = ticks;
 
   if(curproc == initproc)
     panic("init exiting");
@@ -291,6 +297,13 @@ wait(void)
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
+        // Print process profile
+        cprintf("PID: %d\n", p->pid);
+        cprintf("TAT: %d\n", p->completion_time - p->arrival_time);
+        cprintf("WT: %d\n", p->completion_time - p->arrival_time - p->run_time);
+        cprintf("RT: %d\n", p->first_run_time - p->arrival_time);
+        cprintf("#CS: %d\n", p->cs);
+
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -340,6 +353,12 @@ scheduler(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+
+      // Set first run time if not set
+      if(p->first_run_time == 0)
+        p->first_run_time = ticks;
+
+      p->cs++; // Increment context switch count
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -465,8 +484,12 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
+      if(p->arrival_time == 0)
+        p->arrival_time = ticks; // Set arrival time if not set
+
       p->state = RUNNABLE;
+    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -586,8 +609,10 @@ custom_fork(int start_later_flag, int exec_time) {
   if(start_later_flag){
     np->state = SLEEPING;
     np->chan = CUSTOM_FORK_CHAN;
-  } else
+  } else{
     np->state = RUNNABLE;
+    np->arrival_time = ticks; // Record time when process is ready to run
+  }
 
   release(&ptable.lock);
 
