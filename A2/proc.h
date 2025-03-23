@@ -49,6 +49,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  int exec_time;               // Execution time of the process
+  int run_time;                // Run time of the process
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -56,3 +58,7 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+// Custom Fork Chan
+extern char custom_fork_chan;
+#define CUSTOM_FORK_CHAN ((void *)&custom_fork_chan)

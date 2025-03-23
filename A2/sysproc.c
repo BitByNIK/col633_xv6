@@ -14,6 +14,16 @@ sys_fork(void)
 }
 
 int
+sys_custom_fork(void)
+{
+  int start_later_flag, exec_time;
+
+  if (argint(0, &start_later_flag) < 0 || argint(1, &exec_time) < 0)
+    return -1;
+  return custom_fork(start_later_flag, exec_time);
+}
+
+int
 sys_exit(void)
 {
   exit();
@@ -88,4 +98,10 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+void
+sys_scheduler_start(void)
+{
+  wakeup(CUSTOM_FORK_CHAN);
 }

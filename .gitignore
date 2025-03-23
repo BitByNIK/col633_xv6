@@ -10,6 +10,7 @@ _*
 
 # Ignore xv6 specific files
 xv6.img
+fs.img
 *.asm
 *.sym
 vectors.S

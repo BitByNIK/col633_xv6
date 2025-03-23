@@ -54,6 +54,14 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
+
+    // Stop execution if the process has run for the specified time
+    if(myproc() && myproc()->state == RUNNING){
+      myproc()->run_time++;
+      if(myproc()->exec_time > 0 && myproc()->run_time >= myproc()->exec_time)
+        myproc()->killed = 1;
+    }
+
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:

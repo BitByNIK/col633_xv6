@@ -23,6 +23,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int custom_fork(int start_later_flag, int exec_time);
+void scheduler_start(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

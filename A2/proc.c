@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+char custom_fork_chan;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -211,6 +213,9 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
+
+  np->exec_time = -1;
+  np->run_time = 0;
 
   acquire(&ptable.lock);
 
@@ -531,4 +536,60 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+// Custom fork function that allows to schedule a process to start later.
+// It also specifies the execution time of the process.
+int
+custom_fork(int start_later_flag, int exec_time) {
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  // Copy process state from proc.
+  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+
+  // Clear %eax so that fork returns 0 in the child.
+  np->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  pid = np->pid;
+
+  // Set execution time of the process
+  np->exec_time = exec_time;
+  // Time executed by the process
+  np->run_time = 0;
+
+  acquire(&ptable.lock);
+  
+  // Set the process state to SLEEPING if start_later_flag is set
+  // Otherwise, set the process state to RUNNABLE
+  if(start_later_flag){
+    np->state = SLEEPING;
+    np->chan = CUSTOM_FORK_CHAN;
+  } else
+    np->state = RUNNABLE;
+
+  release(&ptable.lock);
+
+  return pid;
 }
