@@ -95,7 +95,7 @@ found:
   p->exec_time = -1;
   p->run_time = 0;
   p->sleep_time = 0;
-  p->first_run_time = 0;
+  p->first_run_time = -1;
   p->cs = 0;
 
   release(&ptable.lock);
@@ -158,6 +158,7 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  p->arrival_time = ticks; // Record time when process is ready to run
 
   release(&ptable.lock);
 }
@@ -357,7 +358,7 @@ scheduler(void)
         continue;
 
       // Set first run time if not set
-      if(p->first_run_time == 0)
+      if(p->first_run_time == -1)
         p->first_run_time = ticks;
 
       // Increment context switch count
@@ -614,10 +615,10 @@ custom_fork(int start_later_flag, int exec_time) {
   // Set the process state to SLEEPING if start_later_flag is set
   // Otherwise, set the process state to RUNNABLE
   if(start_later_flag){
-    np->arrival_time = -1; // Set arrival time to -1 if process is to start later
-
     np->state = SLEEPING;
     np->chan = CUSTOM_FORK_CHAN;
+
+    np->arrival_time = -1; // Set arrival time to -1 if process is to start later
   } else{
     np->state = RUNNABLE;
     np->arrival_time = ticks; // Record time when process is ready to run
