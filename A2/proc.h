@@ -57,6 +57,7 @@ struct proc {
   int sleep_time;              // Total time the process has been asleep
   int first_run_time;          // Time when the process first started running
   int cs;                      // Context switch count
+  int priority;                // Dynamic priority of the process
 };
 
 // Process memory is laid out contiguously, low addresses first:

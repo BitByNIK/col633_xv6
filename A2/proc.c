@@ -97,6 +97,7 @@ found:
   p->sleep_time = 0;
   p->first_run_time = -1;
   p->cs = 0;
+  p->priority = INIT_PRIORITY;
 
   release(&ptable.lock);
 
@@ -353,31 +354,43 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    int highest_priority = -2147483647;
+    struct proc *sched_proc;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
-      // Set first run time if not set
-      if(p->first_run_time == -1)
-        p->first_run_time = ticks;
+      int waiting_time = (ticks - p->arrival_time) - p->run_time - p->sleep_time;
+      p->priority = INIT_PRIORITY - ALPHA * p->run_time + BETA * waiting_time;
 
-      // Increment context switch count
-      p->cs++;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      if(highest_priority < p->priority){
+        highest_priority = p->priority;
+        sched_proc = p;
+      }
     }
+
+    // Set first run time if not set
+    if(sched_proc->first_run_time == -1)
+      sched_proc->first_run_time = ticks;
+
+    // Increment context switch count
+    sched_proc->cs++;
+
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = sched_proc;
+    switchuvm(sched_proc);
+    sched_proc->state = RUNNING;
+
+    swtch(&(c->scheduler), sched_proc->context);
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+
     release(&ptable.lock);
 
   }
