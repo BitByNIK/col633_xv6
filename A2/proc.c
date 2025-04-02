@@ -641,3 +641,13 @@ custom_fork(int start_later_flag, int exec_time) {
 
   return pid;
 }
+
+void
+kill_all_processes(void) {
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid > 2 && (p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING))
+      p->killed = 1;
+  }
+  release(&ptable.lock);
+}

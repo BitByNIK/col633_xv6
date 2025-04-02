@@ -15,6 +15,8 @@
 #include "proc.h"
 #include "x86.h"
 
+void display_key_pressed(char key);
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -213,6 +215,12 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
+
+    case C('C'):  // Ctrl-C
+      display_key_pressed('C');
+      kill_all_processes();
+      break;
+
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
@@ -297,3 +305,16 @@ consoleinit(void)
   ioapicenable(IRQ_KBD, 0);
 }
 
+void
+display_key_pressed(char key)
+{
+  char *ctrl_msg = "Ctrl-";
+  for(char *s=ctrl_msg; *s; s++)
+    consputc(*s);
+
+  consputc(key);
+
+  char* rem_msg = " is detected by xv6\n";
+  for(char *s=rem_msg; *s; s++)
+    consputc(*s);
+}

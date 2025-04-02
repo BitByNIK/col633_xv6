@@ -121,6 +121,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             custom_fork(int, int);
+void            kill_all_processes(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
