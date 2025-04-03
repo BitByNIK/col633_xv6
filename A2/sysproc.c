@@ -75,6 +75,7 @@ sys_sleep(void)
   if(argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
+  myproc()->is_user_sleeping = 1;
   ticks0 = ticks;
   while(ticks - ticks0 < n){
     if(myproc()->killed){
@@ -83,6 +84,7 @@ sys_sleep(void)
     }
     sleep(&ticks, &tickslock);
   }
+  myproc()->is_user_sleeping = 0;
   release(&tickslock);
   return 0;
 }
@@ -103,5 +105,5 @@ sys_uptime(void)
 void
 sys_scheduler_start(void)
 {
-  wakeup(CUSTOM_FORK_CHAN);
+  schedlateprocs();
 }

@@ -15,7 +15,7 @@
 #include "proc.h"
 #include "x86.h"
 
-void display_key_pressed(char key);
+void printkey(char key);
 
 static void consputc(int);
 
@@ -217,8 +217,8 @@ consoleintr(int (*getc)(void))
       break;
 
     case C('C'):  // Ctrl-C
-      display_key_pressed('C');
-      kill_all_processes();
+      printkey('C');
+      killprocs();
       break;
 
     default:
@@ -306,7 +306,7 @@ consoleinit(void)
 }
 
 void
-display_key_pressed(char key)
+printkey(char key)
 {
   char *ctrl_msg = "Ctrl-";
   for(char *s=ctrl_msg; *s; s++)

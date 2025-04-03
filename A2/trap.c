@@ -51,12 +51,15 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
+
+      updatewaittime(); // Update waiting time for all processes
+
       wakeup(&ticks);
       release(&tickslock);
     }
 
     // Stop execution if the process has run for the specified time
-    if(myproc() && myproc()->state == RUNNING){
+    if(myproc() && myproc()->state == RUNNING && myproc()->is_user_sleeping == 0){
       myproc()->run_time++;
       if(myproc()->exec_time > 0 && myproc()->run_time >= myproc()->exec_time)
         myproc()->killed = 1;

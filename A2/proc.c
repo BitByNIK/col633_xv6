@@ -7,8 +7,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-char custom_fork_chan;
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -94,7 +92,8 @@ found:
   // Initialize all scheduling parameters
   p->exec_time = -1;
   p->run_time = 0;
-  p->sleep_time = 0;
+  p->waiting_time = 0;
+  p->is_user_sleeping = 0;
   p->first_run_time = -1;
   p->cs = 0;
   p->priority = INIT_PRIORITY;
@@ -158,8 +157,10 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
-  p->state = RUNNABLE;
+  acquire(&tickslock);
   p->arrival_time = ticks; // Record time when process is ready to run
+  release(&tickslock);
+  p->state = RUNNABLE;
 
   release(&ptable.lock);
 }
@@ -225,8 +226,10 @@ fork(void)
 
   acquire(&ptable.lock);
 
-  np->state = RUNNABLE;
+  acquire(&tickslock);
   np->arrival_time = ticks; // Record time when process is ready to run
+  release(&tickslock);
+  np->state = RUNNABLE;
 
   release(&ptable.lock);
 
@@ -244,7 +247,9 @@ exit(void)
   int fd;
 
   // Record completion time of the process
+  acquire(&tickslock);
   curproc->completion_time = ticks;
+  release(&tickslock);
 
   if(curproc == initproc)
     panic("init exiting");
@@ -304,7 +309,8 @@ wait(void)
         // Print process profile
         cprintf("PID: %d\n", p->pid);
         cprintf("TAT: %d\n", p->completion_time - p->arrival_time);
-        cprintf("WT: %d\n", p->completion_time - p->arrival_time - p->run_time - p->sleep_time);
+        cprintf("WT: %d\n", p->waiting_time);
+        cprintf("BT: %d\n", p->run_time);
         cprintf("RT: %d\n", p->first_run_time - p->arrival_time);
         cprintf("#CS: %d\n", p->cs);
 
@@ -361,8 +367,7 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
-      int waiting_time = (ticks - p->arrival_time) - p->run_time - p->sleep_time;
-      p->priority = INIT_PRIORITY - ALPHA * p->run_time + BETA * waiting_time;
+      p->priority = INIT_PRIORITY - ALPHA * p->run_time + BETA * p->waiting_time;
 
       if(highest_priority < p->priority){
         highest_priority = p->priority;
@@ -371,8 +376,11 @@ scheduler(void)
     }
 
     // Set first run time if not set
-    if(sched_proc->first_run_time == -1)
+    if(sched_proc->first_run_time == -1){
+      acquire(&tickslock);
       sched_proc->first_run_time = ticks;
+      release(&tickslock);
+    }
 
     // Increment context switch count
     sched_proc->cs++;
@@ -480,9 +488,6 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
 
-  // Record last sleep time
-  p->last_sleep_time = ticks;
-
   sched();
 
   // Tidy up.
@@ -504,16 +509,8 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan){
-      // Update sleep time of the process
-      if(chan != CUSTOM_FORK_CHAN)
-        p->sleep_time += ticks - p->last_sleep_time;
-
-      if(p->arrival_time == -1)
-        p->arrival_time = ticks; // Set arrival time if not set
-
+    if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
-    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -588,7 +585,8 @@ procdump(void)
 // Custom fork function that allows to schedule a process to start later.
 // It also specifies the execution time of the process.
 int
-custom_fork(int start_later_flag, int exec_time) {
+custom_fork(int start_later_flag, int exec_time)
+{
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -625,16 +623,15 @@ custom_fork(int start_later_flag, int exec_time) {
 
   acquire(&ptable.lock);
   
-  // Set the process state to SLEEPING if start_later_flag is set
+  // Set the process state to WAITING_TO_START if the start_later_flag is set
   // Otherwise, set the process state to RUNNABLE
-  if(start_later_flag){
-    np->state = SLEEPING;
-    np->chan = CUSTOM_FORK_CHAN;
-
-    np->arrival_time = -1; // Set arrival time to -1 if process is to start later
-  } else{
-    np->state = RUNNABLE;
+  if(start_later_flag)
+    np->state = WAITING_TO_START;
+  else{
+    acquire(&tickslock);
     np->arrival_time = ticks; // Record time when process is ready to run
+    release(&tickslock);
+    np->state = RUNNABLE;
   }
 
   release(&ptable.lock);
@@ -643,11 +640,38 @@ custom_fork(int start_later_flag, int exec_time) {
 }
 
 void
-kill_all_processes(void) {
+schedlateprocs(void)
+{
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == WAITING_TO_START){
+      acquire(&tickslock);
+      p->arrival_time = ticks;
+      release(&tickslock);
+      p->state = RUNNABLE;
+    }
+  }
+  release(&ptable.lock);
+}
+
+void
+killprocs(void)
+{
   acquire(&ptable.lock);
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid > 2 && (p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING))
       p->killed = 1;
+  }
+  release(&ptable.lock);
+}
+
+void
+updatewaittime(void)
+{
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == RUNNABLE && p->is_user_sleeping == 0)
+      p->waiting_time++;
   }
   release(&ptable.lock);
 }
