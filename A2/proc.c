@@ -93,7 +93,6 @@ found:
   p->exec_time = -1;
   p->run_time = 0;
   p->waiting_time = 0;
-  p->is_user_sleeping = 0;
   p->first_run_time = -1;
   p->cs = 0;
   p->priority = INIT_PRIORITY;
@@ -670,7 +669,7 @@ updatewaittime(void)
 {
   acquire(&ptable.lock);
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state == RUNNABLE && p->is_user_sleeping == 0)
+    if(p->state == RUNNABLE)
       p->waiting_time++;
   }
   release(&ptable.lock);

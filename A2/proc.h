@@ -54,7 +54,6 @@ struct proc {
   int arrival_time;            // Creation time of the process
   int completion_time;         // End time of the process
   int waiting_time;            // Time spent in runnable state
-  int is_user_sleeping;        // Flag to indicate if the process is sleeping
   int first_run_time;          // Time when the process first started running
   int cs;                      // Context switch count
   int priority;                // Dynamic priority of the process
