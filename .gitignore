@@ -33,6 +33,8 @@ mkfs
 # Ignore test and log files
 *.log
 *.test
+check_scripts/
+*.tar.gz
 
 # Ignore config files that should not be tracked
 *.cfg
