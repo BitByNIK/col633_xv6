@@ -122,7 +122,8 @@ void            wakeup(void*);
 void            yield(void);
 int             custom_fork(int, int);
 void            schedlateprocs(void);
-void            killprocs(void);
+void            dispatchsig(int);
+void            updatesig(void);
 void            updatewaittime(void);
 
 // swtch.S

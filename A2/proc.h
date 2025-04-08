@@ -32,7 +32,7 @@ struct context {
   uint eip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE, WAITING_TO_START };
+enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE, SUSPENDED, WAITING_TO_START };
 
 // Per-process state
 struct proc {
@@ -64,3 +64,8 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+// Signal Identifiers
+enum kibs { NOSIG, SIGINT, SIGBG, SIGFG, SIGCUSTOM };
+// Tracks current signal
+extern enum kibs currkibs;

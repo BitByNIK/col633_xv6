@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+enum kibs currkibs = NOSIG;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -300,7 +302,7 @@ wait(void)
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc)
+      if(p->parent != curproc || p->state == SUSPENDED)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -309,7 +311,6 @@ wait(void)
         cprintf("PID: %d\n", p->pid);
         cprintf("TAT: %d\n", p->completion_time - p->arrival_time);
         cprintf("WT: %d\n", p->waiting_time);
-        cprintf("BT: %d\n", p->run_time);
         cprintf("RT: %d\n", p->first_run_time - p->arrival_time);
         cprintf("#CS: %d\n", p->cs);
 
@@ -434,7 +435,8 @@ void
 yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
+  if(myproc()->state != SUSPENDED)
+    myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);
 }
@@ -557,7 +559,9 @@ procdump(void)
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie"
+  [ZOMBIE]    "zombie",
+  [SUSPENDED] "suspend",
+  [WAITING_TO_START] "waiting_to_start",
   };
   int i;
   struct proc *p;
@@ -653,17 +657,45 @@ schedlateprocs(void)
   release(&ptable.lock);
 }
 
+// Sets the current signal
 void
-killprocs(void)
+dispatchsig(int signal)
+{
+  currkibs = signal;
+}
+
+// Sets the process state based on the current signal
+void
+updatesig()
 {
   acquire(&ptable.lock);
-  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pid > 2 && (p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING))
-      p->killed = 1;
+  switch (currkibs)
+  {
+    case SIGINT:
+      for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->pid > 2 && (p->state == RUNNABLE || p->state == RUNNING || p->state == SLEEPING))
+          p->killed = 1;
+      }
+      break;
+
+    case SIGBG:
+      for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->pid > 2 && (p->state == RUNNABLE || p->state == RUNNING || p->state == SLEEPING))
+          p->state = SUSPENDED;
+        else if(p->pid == 2 && p->state == SLEEPING && p->chan == p)
+          wakeup1(p);
+      }
+      break;
+    
+    default:
+      break;
   }
+
+  currkibs = NOSIG;
   release(&ptable.lock);
 }
 
+// Update waiting time for all processes
 void
 updatewaittime(void)
 {

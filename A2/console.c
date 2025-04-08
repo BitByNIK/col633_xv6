@@ -218,7 +218,12 @@ consoleintr(int (*getc)(void))
 
     case C('C'):  // Ctrl-C
       printkey('C');
-      killprocs();
+      dispatchsig(SIGINT);
+      break;
+
+    case C('B'):  // Ctrl-B
+      printkey('B');
+      dispatchsig(SIGBG);
       break;
 
     default:

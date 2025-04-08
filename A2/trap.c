@@ -105,6 +105,13 @@ trap(struct trapframe *tf)
     myproc()->killed = 1;
   }
 
+  // Process the current signal in user space
+  if(currkibs == SIGBG && (tf->cs&3) == DPL_USER){
+    updatesig();
+    yield();
+  } else if(currkibs == SIGINT)
+    updatesig();
+
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
