@@ -219,11 +219,23 @@ consoleintr(int (*getc)(void))
     case C('C'):  // Ctrl-C
       printkey('C');
       dispatchsig(SIGINT);
+      if (input.e - input.r < INPUT_BUF) {
+        input.buf[input.e++ % INPUT_BUF] = 's';
+        input.buf[input.e++ % INPUT_BUF] = 'w';
+        input.buf[input.e++ % INPUT_BUF] = '\n';
+        input.w = input.e;
+        wakeup(&input.r);
+      }
       break;
 
     case C('B'):  // Ctrl-B
       printkey('B');
       dispatchsig(SIGBG);
+      break;
+
+    case C('F'):  // Ctrl-F
+      printkey('F');
+      dispatchsig(SIGFG);
       break;
 
     default:

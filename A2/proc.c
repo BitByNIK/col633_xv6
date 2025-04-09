@@ -7,8 +7,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-enum kibs currkibs = NOSIG;
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -252,6 +250,13 @@ exit(void)
   curproc->completion_time = ticks;
   release(&tickslock);
 
+  // Print process profile
+  cprintf("PID: %d\n", curproc->pid);
+  cprintf("TAT: %d\n", curproc->completion_time - curproc->arrival_time);
+  cprintf("WT: %d\n", curproc->waiting_time);
+  cprintf("RT: %d\n", curproc->first_run_time - curproc->arrival_time);
+  cprintf("#CS: %d\n", curproc->cs);
+
   if(curproc == initproc)
     panic("init exiting");
 
@@ -307,12 +312,6 @@ wait(void)
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
-        // Print process profile
-        cprintf("PID: %d\n", p->pid);
-        cprintf("TAT: %d\n", p->completion_time - p->arrival_time);
-        cprintf("WT: %d\n", p->waiting_time);
-        cprintf("RT: %d\n", p->first_run_time - p->arrival_time);
-        cprintf("#CS: %d\n", p->cs);
 
         pid = p->pid;
         kfree(p->kstack);
@@ -350,7 +349,7 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *sched_proc = 0;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -362,8 +361,7 @@ scheduler(void)
     acquire(&ptable.lock);
 
     int highest_priority = -2147483647;
-    struct proc *sched_proc;
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
@@ -372,6 +370,20 @@ scheduler(void)
       if(highest_priority < p->priority){
         highest_priority = p->priority;
         sched_proc = p;
+      }
+    }
+
+    if(sched_proc == 0 || sched_proc->state != RUNNABLE){
+      for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->pid == 2){
+          sched_proc = p;
+          break;
+        }
+      }
+
+      if(sched_proc == 0){
+        release(&ptable.lock);
+        continue;
       }
     }
 
@@ -661,37 +673,32 @@ schedlateprocs(void)
 void
 dispatchsig(int signal)
 {
-  currkibs = signal;
-}
-
-// Sets the process state based on the current signal
-void
-updatesig()
-{
   acquire(&ptable.lock);
-  switch (currkibs)
-  {
-    case SIGINT:
-      for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if(p->pid > 2 && (p->state == RUNNABLE || p->state == RUNNING || p->state == SLEEPING))
-          p->killed = 1;
+  if(signal == SIGINT){
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid > 2 && p->state != UNUSED && p->state != EMBRYO && p->state != ZOMBIE){
+        p->state = RUNNABLE;
+        p->killed = 1;
       }
-      break;
+    }
+  } else if(signal == SIGFG){
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state == SUSPENDED)
+        p->state = RUNNABLE;
+    }
+  } else if(signal == SIGBG){
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid > 2 && p->state != UNUSED && p->state != EMBRYO && p->state != ZOMBIE)
+        p->state = SUSPENDED;
+    }
 
-    case SIGBG:
-      for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if(p->pid > 2 && (p->state == RUNNABLE || p->state == RUNNING || p->state == SLEEPING))
-          p->state = SUSPENDED;
-        else if(p->pid == 2 && p->state == SLEEPING && p->chan == p)
-          wakeup1(p);
+    for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == 2 && p->state == SLEEPING && p->chan == p){
+        p->state = RUNNABLE;
+        break;
       }
-      break;
-    
-    default:
-      break;
+    }
   }
-
-  currkibs = NOSIG;
   release(&ptable.lock);
 }
 

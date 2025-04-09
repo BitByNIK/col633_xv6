@@ -67,5 +67,3 @@ struct proc {
 
 // Signal Identifiers
 enum kibs { NOSIG, SIGINT, SIGBG, SIGFG, SIGCUSTOM };
-// Tracks current signal
-extern enum kibs currkibs;
