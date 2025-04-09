@@ -642,12 +642,12 @@ custom_fork(int start_later_flag, int exec_time)
   
   // Set the process state to WAITING_TO_START if the start_later_flag is set
   // Otherwise, set the process state to RUNNABLE
+  acquire(&tickslock);
+  np->arrival_time = ticks; // Record time when process is ready to run
+  release(&tickslock);
   if(start_later_flag)
     np->state = WAITING_TO_START;
   else{
-    acquire(&tickslock);
-    np->arrival_time = ticks; // Record time when process is ready to run
-    release(&tickslock);
     np->state = RUNNABLE;
   }
 
@@ -661,12 +661,8 @@ schedlateprocs(void)
 {
   acquire(&ptable.lock);
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state == WAITING_TO_START){
-      acquire(&tickslock);
-      p->arrival_time = ticks;
-      release(&tickslock);
+    if(p->state == WAITING_TO_START)
       p->state = RUNNABLE;
-    }
   }
   release(&ptable.lock);
 }
