@@ -101,6 +101,17 @@ sys_uptime(void)
 }
 
 void
+sys_signal(void)
+{
+  int handler_addr;
+  if(argint(0, &handler_addr) < 0)
+    return;
+
+  sighandler_t handler = (sighandler_t)handler_addr;
+  myproc()->signal_handler = handler;
+}
+
+void
 sys_scheduler_start(void)
 {
   schedlateprocs();

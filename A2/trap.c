@@ -125,4 +125,14 @@ trap(struct trapframe *tf)
   // If it is still executing in the kernel, let it keep running
   if(myproc() && myproc()->state == SUSPENDED && (tf->cs&3) == DPL_USER)
     yield();
+
+  // Handle custom signal
+  if(myproc() && myproc()->signal_handler && curkibs == SIGCUSTOM){
+    myproc()->tf->esp -= 4;
+    *(uint*)(myproc()->tf->esp) = myproc()->tf->eip;
+
+    myproc()->tf->eip = (uint)myproc()->signal_handler;
+
+    curkibs = NOSIG;
+  }
 }

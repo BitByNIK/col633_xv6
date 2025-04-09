@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+void signal(sighandler_t);
 int custom_fork(int start_later_flag, int exec_time);
 void scheduler_start(void);
 

@@ -26,7 +26,7 @@ void myHandler()
 
 int main()
 {
-    // signal(myHandler); // you need to implement this syscall for registering signal handlers
+    signal(myHandler); // you need to implement this syscall for registering signal handlers
     while (1)
     {
         printf(1, "This is normal code running \n");

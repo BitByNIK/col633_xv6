@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+enum kibs curkibs = NOSIG;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -698,7 +700,8 @@ dispatchsig(int signal)
         break;
       }
     }
-  }
+  } else if(signal == SIGCUSTOM)
+    curkibs = SIGCUSTOM;
   release(&ptable.lock);
 }
 

@@ -238,6 +238,11 @@ consoleintr(int (*getc)(void))
       dispatchsig(SIGFG);
       break;
 
+    case C('G'):  // Ctrl-G
+      printkey('G');
+      dispatchsig(SIGCUSTOM);
+      break;
+
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
