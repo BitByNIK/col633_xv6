@@ -8,7 +8,7 @@ int main()
 {
     for (int i = 0; i < NUM_PROCS; i++)
     {
-        int pid = custom_fork(1, 50); // Start later, execution time 50
+        int pid = custom_fork(1, 100); // Start later, execution time 50
         if (pid < 0)
         {
             printf(1, "Failed to fork process %d\n", i);
@@ -17,6 +17,7 @@ int main()
         else if (pid == 0)
         {
             // Child process
+            sleep(50 * (i + 1));
             printf(1, "Child %d (PID: %d) started but should not run yet.\n", i, getpid());
             for (volatile int j = 0; j < 100000000; j++)
                 ; // Simulated work

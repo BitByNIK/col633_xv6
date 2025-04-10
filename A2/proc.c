@@ -350,6 +350,7 @@ void
 scheduler(void)
 {
   struct proc *sched_proc = 0;
+  struct proc *last_sched_proc = 0;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -360,12 +361,14 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    int highest_priority = -2147483647;
+    int highest_priority = -1;
     for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
       p->priority = INIT_PRIORITY - ALPHA * p->run_time + BETA * p->waiting_time;
+      if(p->priority < 0)
+        p->priority = 0;
 
       if(highest_priority < p->priority){
         highest_priority = p->priority;
@@ -395,7 +398,11 @@ scheduler(void)
     }
 
     // Increment context switch count
-    sched_proc->cs++;
+    if(last_sched_proc != sched_proc)
+      sched_proc->cs++;
+
+    // Remeber the last scheduled process
+    last_sched_proc = sched_proc;
 
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
