@@ -92,6 +92,10 @@ found:
   p->pid = nextpid++;
 
   // Initialize all scheduling parameters
+  acquire(&tickslock);
+  p->arrival_time = ticks; // Record time when process is ready to run
+  release(&tickslock);
+  p->signal_handler = 0;
   p->exec_time = -1;
   p->run_time = 0;
   p->waiting_time = 0;
@@ -158,9 +162,6 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
-  acquire(&tickslock);
-  p->arrival_time = ticks; // Record time when process is ready to run
-  release(&tickslock);
   p->state = RUNNABLE;
 
   release(&ptable.lock);
@@ -227,9 +228,6 @@ fork(void)
 
   acquire(&ptable.lock);
 
-  acquire(&tickslock);
-  np->arrival_time = ticks; // Record time when process is ready to run
-  release(&tickslock);
   np->state = RUNNABLE;
 
   release(&ptable.lock);
@@ -642,14 +640,10 @@ custom_fork(int start_later_flag, int exec_time)
   
   // Set the process state to WAITING_TO_START if the start_later_flag is set
   // Otherwise, set the process state to RUNNABLE
-  acquire(&tickslock);
-  np->arrival_time = ticks; // Record time when process is ready to run
-  release(&tickslock);
   if(start_later_flag)
     np->state = WAITING_TO_START;
-  else{
+  else
     np->state = RUNNABLE;
-  }
 
   release(&ptable.lock);
 
