@@ -31,3 +31,15 @@ Implemented signal handling for **process termination, suspension, and resumptio
 ### 2. Custom Scheduler ⏱️
 
 Modified the **xv6 scheduler** to incorporate **priority-based scheduling** and profiling.
+
+---
+
+## Assignment 3 - Memory Management 🧠
+
+### 1. Memory Printer 🖨️
+
+Added a memory page inspection feature for active processes.
+
+### 2. Page Swapping 💾
+
+Introduced adaptive page replacement and disk-based page swapping.
