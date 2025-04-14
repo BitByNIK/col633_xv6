@@ -385,6 +385,21 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
+// Count the number of pages in the process's address space.
+// They should be present in RAM and user-accessible.
+int
+countprocpages(pde_t *pgdir, uint sz)
+{
+  int num_pages = 0;
+  for(uint va = 0; va < sz; va += PGSIZE){
+    pte_t *pte = walkpgdir(pgdir, (char*)va, 0);
+    if(pte && (*pte & PTE_P) && (*pte & PTE_U))
+      num_pages++;
+  }
+
+  return num_pages;
+}
+
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
