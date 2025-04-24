@@ -78,7 +78,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_PGFLT:
-    if(myproc() != 0)
+    if(myproc() != 0 && (tf->cs&3) == DPL_USER)
       if(handlepagefault(myproc(), rcr2()) == 0)
         return;
 

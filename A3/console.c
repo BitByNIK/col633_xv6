@@ -309,7 +309,7 @@ consoleinit(void)
 void
 printkey(char key)
 {
-  char *ctrl_msg = "Ctrl-";
+  char *ctrl_msg = "Ctrl+";
   for(char *s=ctrl_msg; *s; s++)
     consputc(*s);
 
