@@ -540,10 +540,10 @@ void
 memprinter(void)
 {
   acquire(&ptable.lock);
-  cprintf("PID NUM_PAGES RSS\n");
+  cprintf("PID NUM_PAGES\n");
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid >= 1 && (p->state == RUNNABLE || p->state == SLEEPING || p->state == RUNNING)){
-      cprintf("%d   %d %d\n", p->pid, countprocpages(p->pgdir, p->sz), p->rss);
+      cprintf("%d   %d\n", p->pid, countprocpages(p->pgdir, p->sz), p->rss);
     }
   }
   release(&ptable.lock);
