@@ -121,6 +121,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 void            memprinter(void);
+struct proc*    getvictimproc(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -187,6 +188,15 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 int             countprocpages(pde_t*, uint);
+int             swapoutpage(struct proc*);
+int             handlepagefault(struct proc*, uint);
+
+// pageswap.c
+void            swapinit(void);
+int             allocswap(void);
+void            freeswap(int);
+void            writeswap(char*, int);
+void            readswap(char*, int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

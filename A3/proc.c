@@ -89,6 +89,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  p->rss = 0;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -538,11 +540,27 @@ void
 memprinter(void)
 {
   acquire(&ptable.lock);
-  cprintf("PID NUM_PAGES\n");
+  cprintf("PID NUM_PAGES RSS\n");
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid >= 1 && (p->state == RUNNABLE || p->state == SLEEPING || p->state == RUNNING)){
-      cprintf("%d   %d\n", p->pid, countprocpages(p->pgdir, p->sz));
+      cprintf("%d   %d %d\n", p->pid, countprocpages(p->pgdir, p->sz), p->rss);
     }
   }
   release(&ptable.lock);
+}
+
+// Get the process with max number of pages in the RAM.
+struct proc*
+getvictimproc(void)
+{
+  struct proc *victim = 0;
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == RUNNABLE || p->state == SLEEPING || p->state == RUNNING){
+      if(victim == 0 || p->rss > victim->rss || (p->rss == victim->rss && p->pid < victim->pid))
+        victim = p;
+    }
+  }
+  release(&ptable.lock);
+  return victim;
 }

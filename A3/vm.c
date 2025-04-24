@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "pageswap.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -244,6 +245,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(mem);
       return 0;
     }
+
+    myproc()->rss++;
   }
   return newsz;
 }
@@ -398,6 +401,83 @@ countprocpages(pde_t *pgdir, uint sz)
   }
 
   return num_pages;
+}
+
+int
+tryswapoutpage(struct proc *p)
+{
+    for (uint va = 0; va < p->sz; va += PGSIZE)
+    {
+        pte_t *pte = walkpgdir(p->pgdir, (char *)va, 0);
+        if (pte && (*pte & PTE_P) && (*pte & PTE_U) && !(*pte & PTE_A))
+        {
+            char *pa = P2V(PTE_ADDR(*pte));
+
+            int slot = allocswap();
+            if (slot < 0)
+                return -1;
+
+            writeswap(pa, slot);
+
+            swaptable[slot].page_perm = *pte & 0xFFF;
+
+            *pte = (slot << 12) | PTE_S | PTE_U;
+
+            kfree(pa);
+            p->rss--;
+            lcr3(V2P(p->pgdir));
+
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+int
+swapoutpage(struct proc *p)
+{
+    int r = tryswapoutpage(p);
+    if (r == 0)
+        return 0;
+    
+    int maxcleared = p->sz / (PGSIZE * 10) + 1;
+    int cleared = 0;
+    for (uint va = 0; va < p->sz && cleared < maxcleared; va += PGSIZE) {
+      pte_t *pte = walkpgdir(p->pgdir, (char*)va, 0);
+      if (pte && (*pte & PTE_P) && (*pte & PTE_U)){
+        *pte &= ~PTE_A;
+        cleared++;
+      }
+    }
+    lcr3(V2P(p->pgdir));
+
+    return tryswapoutpage(p);
+}
+
+int
+handlepagefault(struct proc *p, uint va)
+{
+    pte_t *pte = walkpgdir(p->pgdir, (char *)va, 0);
+    if (pte && (*pte & PTE_S) && (*pte & PTE_U))
+    {
+        int slot = PTE_ADDR(*pte) >> 12;
+        char *mem = kalloc();
+        if (mem == 0)
+            return -1;
+
+        readswap(mem, slot);
+
+        *pte = V2P(mem) | swaptable[slot].page_perm | PTE_P | PTE_A;
+        freeswap(slot);
+
+        p->rss++;
+        lcr3(V2P(p->pgdir));
+
+        return 0;
+    }
+
+    return -1;
 }
 
 //PAGEBREAK!

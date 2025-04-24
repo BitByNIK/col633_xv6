@@ -84,13 +84,20 @@ kalloc(void)
 {
   struct run *r;
 
-  if(kmem.use_lock)
+  for(;;){
+    if(kmem.use_lock)
     acquire(&kmem.lock);
-  r = kmem.freelist;
-  if(r)
-    kmem.freelist = r->next;
-  if(kmem.use_lock)
-    release(&kmem.lock);
-  return (char*)r;
+    r = kmem.freelist;
+    if(r)
+      kmem.freelist = r->next;
+    if(kmem.use_lock)
+      release(&kmem.lock);
+
+    if(r)
+      return (char*)r;
+
+    if (swapoutpage(getvictimproc()) < 0)
+      return 0; 
+  }
 }
 
