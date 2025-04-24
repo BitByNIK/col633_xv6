@@ -9,6 +9,11 @@
 #include "mmu.h"
 #include "spinlock.h"
 
+#define LIMIT 100 // limit for the number of pages to swap out
+
+static int Th = 100; // threshold for swapping out pages
+static int Npg = 4; // number of pages to swap out at a time
+
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -76,6 +81,24 @@ kfree(char *v)
     release(&kmem.lock);
 }
 
+// Return the number of free pages
+int
+countfreepages(void)
+{
+  struct run *r;
+  int count = 0;
+
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  while (r) {
+    count++;
+    r = r->next;
+  }
+  release(&kmem.lock);
+
+  return count;
+}
+
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
@@ -84,20 +107,36 @@ kalloc(void)
 {
   struct run *r;
 
-  for(;;){
-    if(kmem.use_lock)
-    acquire(&kmem.lock);
-    r = kmem.freelist;
-    if(r)
-      kmem.freelist = r->next;
-    if(kmem.use_lock)
-      release(&kmem.lock);
+  if(kmem.use_lock)
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  if(r)
+    kmem.freelist = r->next;
+  if(kmem.use_lock)
+    release(&kmem.lock);
 
-    if(r)
-      return (char*)r;
+  if(r)
+    return (char*)r;
 
-    if (swapoutpage(getvictimproc()) < 0)
-      return 0; 
+  if(countfreepages() < Th){
+    cprintf("Current Threshold: %d, Swapping %d pages\n", Th, Npg);
+
+    for(int i = 0; i < Npg; i++){
+      if (swapoutpage(getvictimproc()) < 0)
+        break;
+    }
+
+    Th = (Th * (100 - BETA))/ 100;
+    if(Th > 0 && Th < 1)
+      Th = 1;
+    
+    Npg = (Npg * (100 + ALPHA)) / 100;
+    if(Npg > LIMIT)
+      Npg = LIMIT;
+
+    return kalloc();
   }
+
+  return 0;
 }
 
