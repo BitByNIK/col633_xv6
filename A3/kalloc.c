@@ -119,18 +119,15 @@ kalloc(void)
     return (char*)r;
 
   if(countfreepages() < Th){
-    cprintf("Current Threshold: %d, Swapping %d pages\n", Th, Npg);
+    cprintf("Current Threshold = %d, Swapping %d pages\n", Th, Npg);
 
     for(int i = 0; i < Npg; i++){
       if (swapoutpage(getvictimproc()) < 0)
         break;
     }
 
-    Th = (Th * (100 - BETA))/ 100;
-    if(Th > 0 && Th < 1)
-      Th = 1;
-    
-    Npg = (Npg * (100 + ALPHA)) / 100;
+    Th -= (Th * BETA) / 100;
+    Npg += (Npg * ALPHA) / 100;
     if(Npg > LIMIT)
       Npg = LIMIT;
 
