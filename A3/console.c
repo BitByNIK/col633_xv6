@@ -220,7 +220,8 @@ consoleintr(int (*getc)(void))
       printkey('I');
       release(&cons.lock);
       memprinter();
-      return;
+      acquire(&cons.lock);
+      break;
 
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){

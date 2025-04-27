@@ -393,10 +393,10 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 int
 countprocpages(pde_t *pgdir, uint sz)
 {
-  int num_pages = 1;
+  int num_pages = 0;
   for(uint va = 0; va < sz; va += PGSIZE){
     pte_t *pte = walkpgdir(pgdir, (char*)va, 0);
-    if(pte && (*pte & PTE_P) && (*pte & PTE_U))
+    if(pte && (*pte & PTE_P))
       num_pages++;
   }
 
