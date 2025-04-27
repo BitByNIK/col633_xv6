@@ -80,7 +80,7 @@ trap(struct trapframe *tf)
   case T_PGFLT:
     if(myproc() != 0 && (tf->cs&3) == DPL_USER)
       if(handlepagefault(myproc(), rcr2()) == 0)
-        return;
+        break;
 
   //PAGEBREAK: 13
   default:
