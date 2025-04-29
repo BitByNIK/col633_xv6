@@ -89,8 +89,6 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  p->rss = 0;
-
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -196,8 +194,10 @@ fork(void)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
+    np->rss = 0;
     return -1;
   }
+  np->rss = np->sz / PGSIZE;
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
