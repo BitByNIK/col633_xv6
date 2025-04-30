@@ -197,7 +197,7 @@ fork(void)
     np->rss = 0;
     return -1;
   }
-  np->rss = np->sz / PGSIZE;
+  np->rss = countprocpages(np->pgdir, np->sz);
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
