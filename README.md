@@ -1,5 +1,7 @@
 # COL633 - Resource Management in Computer Systems (xv6)
 
+For Mac users looking to run xv6, use this [Docker image](https://hub.docker.com/r/bitbynik/xv6-public).
+
 This repository contains solutions for **COL633 - Resource Management in Computer Systems** assignments, focusing on enhancing the **xv6** operating system. Below is a quick summary of each assignment:
 
 ## Assignment 1 - Shell Enhancements 🖥️
